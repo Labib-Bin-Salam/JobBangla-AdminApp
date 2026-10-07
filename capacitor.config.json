@@ -1,0 +1,19 @@
+{
+  "appId": "bd.jobbangla.admin",
+  "appName": "Job Bangla Control",
+  "webDir": "www",
+  "server": {
+    "url": "https://admin.jobbangla.bd",
+    "androidScheme": "https",
+    "errorPath": "error.html",
+    "allowNavigation": [
+      "admin.jobbangla.bd"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}

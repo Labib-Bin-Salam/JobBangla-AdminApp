@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Job Bangla Control</string>
+    <string name="title_activity_main">Job Bangla Control</string>
+    <string name="package_name">bd.jobbangla.admin</string>
+    <string name="custom_url_scheme">bd.jobbangla.admin</string>
+</resources>
