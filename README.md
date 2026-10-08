@@ -17,3 +17,9 @@ JDK 17 + Android SDK, then `npm install`, `npx cap sync android`, and
 - **Quick unlock:** after one normal sign in, the app can remember the phone and open with fingerprint, face or the
   phone's screen PIN instead of the password + authenticator code. A deliberate Log out forgets the phone.
 - **Push notifications:** team chat messages and team calls arrive as notifications (allow notifications when asked).
+
+## Updating
+From 1.2 on the app updates itself: when a newer release is published here it shows "Update available", downloads it
+inside the app and opens Android's installer (one tap). Phones on 1.0/1.1 need to install 1.2 manually once.
+To ship a new version: bump `versionCode`/`versionName` in `android/app/build.gradle`, build the signed APK, and
+publish a GitHub release tagged `vX.Y` with the file `JobBangla-Control.apk` attached.
