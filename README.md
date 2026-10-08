@@ -12,3 +12,8 @@ panel). For authorised operators only; signing in needs a Job Bangla admin accou
 JDK 17 + Android SDK, then `npm install`, `npx cap sync android`, and
 `cd android && gradlew.bat assembleRelease`. Signing needs a local, uncommitted
 `android/keystore.properties` + keystore.
+
+## What's new in 1.1
+- **Quick unlock:** after one normal sign in, the app can remember the phone and open with fingerprint, face or the
+  phone's screen PIN instead of the password + authenticator code. A deliberate Log out forgets the phone.
+- **Push notifications:** team chat messages and team calls arrive as notifications (allow notifications when asked).
