@@ -6,3 +6,6 @@ android/local.properties
 android/keystore.properties
 *.jks
 dist/
+
+# Firebase client config (per-project; keep out of the public repo)
+android/app/google-services.json
