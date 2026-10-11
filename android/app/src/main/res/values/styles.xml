@@ -13,6 +13,11 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Android 15 (targetSdk 35) ignores statusBarColor and draws edge-to-edge; the strip behind
+             the status bar is the window background, so make it white (light) to match the header. -->
+        <item name="android:windowBackground">@color/statusBar</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
         <!-- WebView is inset below the system bars (adjustMarginsForEdgeToEdge),
              so paint the bars white with dark icons to match the panel header. -->
         <item name="android:statusBarColor">@color/statusBar</item>
