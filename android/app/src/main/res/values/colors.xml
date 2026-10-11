@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- System bars sit beside the panel's own white header once the WebView is
+         inset (adjustMarginsForEdgeToEdge), so keep them white with dark icons. -->
+    <color name="statusBar">#FFFFFF</color>
+    <color name="navigationBar">#FFFFFF</color>
+</resources>
