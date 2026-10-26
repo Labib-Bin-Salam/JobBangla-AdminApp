@@ -30,18 +30,17 @@ import java.net.URL;
 /**
  * In-app updater for the sideloaded Job Bangla Control APK.
  *
- * check()   asks GitHub for the latest release of JobBangla-AdminApp and compares its tag
- *           (v1.2) with this app's versionName.
- * install() downloads that release's .apk into the app cache and hands it to Android's
+ * check()   asks the Job Bangla portal (GET /admin-app/latest) for the newest published build and
+ *           compares its versionName (1.2) with this app's versionName.
+ * install() downloads that .apk into the app cache and hands it to Android's
  *           package installer. Android always shows its own "Update" confirmation, and only
  *           accepts the file if it is signed with the same key as the installed app, so a
  *           tampered download simply fails to install.
  */
 @CapacitorPlugin(name = "AppUpdater")
 public class AppUpdaterPlugin extends Plugin {
-    private static final String REPO = "Labib-Bin-Salam/JobBangla-AdminApp";
-    private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
-    private static final String DOWNLOAD_PREFIX = "https://github.com/" + REPO + "/releases/download/";
+    private static final String LATEST_API = "https://jobbangla.bd/api/admin-app/latest";
+    private static final String DOWNLOAD_URL = "https://jobbangla.bd/api/admin-app/download";
 
     private volatile boolean downloading = false;
 
@@ -53,26 +52,20 @@ public class AppUpdaterPlugin extends Plugin {
                 String current = info.versionName == null ? "0" : info.versionName;
 
                 JSONObject release = new JSONObject(readText(LATEST_API));
-                String latest = release.optString("tag_name", "");
-                String apkUrl = null;
-                JSONArray assets = release.optJSONArray("assets");
-                if (assets != null) {
-                    for (int i = 0; i < assets.length(); i++) {
-                        JSONObject asset = assets.getJSONObject(i);
-                        String url = asset.optString("browser_download_url", "");
-                        if (asset.optString("name", "").endsWith(".apk") && url.startsWith(DOWNLOAD_PREFIX)) {
-                            apkUrl = url;
-                            break;
-                        }
-                    }
+                boolean published = release.optBoolean("available", false);
+                String latest = release.optString("versionName", "");
+                String notes = release.optString("notes", "");
+                if (release.optBoolean("force", false) && !notes.toLowerCase().contains("[force]")) {
+                    notes = (notes + " [force]").trim();
                 }
 
                 JSObject result = new JSObject();
                 result.put("current", current);
-                result.put("latest", latest.startsWith("v") ? latest.substring(1) : latest);
-                result.put("notes", release.optString("body", ""));
-                result.put("apkUrl", apkUrl == null ? "" : apkUrl);
-                result.put("updateAvailable", apkUrl != null && compareVersions(latest, current) > 0);
+                result.put("latest", latest);
+                result.put("notes", notes);
+                result.put("apkUrl", published ? DOWNLOAD_URL : "");
+                result.put("sha256", release.optString("sha256", ""));
+                result.put("updateAvailable", published && compareVersions(latest, current) > 0);
                 call.resolve(result);
             } catch (Exception e) {
                 // Offline / rate limited: just report "nothing to update".
@@ -86,7 +79,8 @@ public class AppUpdaterPlugin extends Plugin {
     @PluginMethod
     public void install(final PluginCall call) {
         final String url = call.getString("url", "");
-        if (url == null || !url.startsWith(DOWNLOAD_PREFIX) || !url.endsWith(".apk")) {
+        final String expectedSha256 = call.getString("sha256", "");
+        if (url == null || !url.equals(DOWNLOAD_URL)) {
             call.reject("Not an official update file.");
             return;
         }
@@ -146,6 +140,10 @@ public class AppUpdaterPlugin extends Plugin {
                     }
                 }
                 if (apk.length() < 1_000_000) throw new Exception("The downloaded file looks incomplete.");
+                if (expectedSha256 != null && !expectedSha256.isEmpty() && !expectedSha256.equalsIgnoreCase(sha256(apk))) {
+                    apk.delete();
+                    throw new Exception("The downloaded file is damaged. Try again.");
+                }
 
                 final Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", apk);
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -165,11 +163,23 @@ public class AppUpdaterPlugin extends Plugin {
         }).start();
     }
 
+    private static String sha256(File file) throws Exception {
+        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+        try (InputStream in = new BufferedInputStream(new java.io.FileInputStream(file))) {
+            byte[] buf = new byte[32 * 1024];
+            int n;
+            while ((n = in.read(buf)) != -1) md.update(buf, 0, n);
+        }
+        StringBuilder hex = new StringBuilder();
+        for (byte b : md.digest()) hex.append(String.format("%02x", b));
+        return hex.toString();
+    }
+
     private static String readText(String address) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(10000);
-        conn.setRequestProperty("Accept", "application/vnd.github+json");
+        conn.setRequestProperty("Accept", "application/json");
         if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
         try (InputStream in = conn.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buf = new byte[8192];

@@ -1,25 +1,46 @@
-# Job Bangla Control - Android app
+# Job Bangla Control - Android app (Capacitor)
 
-Android app for the Job Bangla admin panel (a Capacitor shell around the live
-panel). For authorised operators only; signing in needs a Job Bangla admin account.
+Standalone Capacitor 7 project: a native Android shell around the live admin
+panel `https://admin.jobbangla.bd` (`server.url` in `capacitor.config.json`).
+There is no web bundle to rebuild - shipping a panel update (`Website/scripts/deploy-frontend.sh`)
+updates the app instantly. App id `bd.jobbangla.admin` (separate from the public
+app `bd.jobbangla.mobile` in `../android/`).
 
-## Install
-1. On your phone, open the **Releases** page of this repository and download `JobBangla-Control.apk`.
-2. Open the file. If Android asks, allow "Install unknown apps" for your browser/files app.
-3. Open **Job Bangla Control** and sign in.
+Navigation is locked to `admin.jobbangla.bd`; other links open outside the app.
+Permissions: internet, microphone + camera (team calls), notifications.
 
-## Build (developers)
-JDK 17 + Android SDK, then `npm install`, `npx cap sync android`, and
-`cd android && gradlew.bat assembleRelease`. Signing needs a local, uncommitted
-`android/keystore.properties` + keystore.
+## Prerequisites
+JDK 17, Android SDK (platform 35+, set `android/local.properties` -> `sdk.dir`), Node 20+.
 
-## What's new in 1.1
-- **Quick unlock:** after one normal sign in, the app can remember the phone and open with fingerprint, face or the
-  phone's screen PIN instead of the password + authenticator code. A deliberate Log out forgets the phone.
-- **Push notifications:** team chat messages and team calls arrive as notifications (allow notifications when asked).
+## Commands (from this folder)
+| Command | Does |
+| --- | --- |
+| `npm install` | install deps |
+| `npm run sync` | copy `www/` + config into `android/` |
+| `npm run open` | open `android/` in Android Studio |
+| `npm run apk:debug` | `android/app/build/outputs/apk/debug/app-debug.apk` |
+| `npm run bundle:release` | `.aab` for Play (create `android/keystore.properties` + a keystore first) |
 
-## Updating
-From 1.2 on the app updates itself: when a newer release is published here it shows "Update available", downloads it
-inside the app and opens Android's installer (one tap). Phones on 1.0/1.1 need to install 1.2 manually once.
-To ship a new version: bump `versionCode`/`versionName` in `android/app/build.gradle`, build the signed APK, and
-publish a GitHub release tagged `vX.Y` with the file `JobBangla-Control.apk` attached.
+## Push notifications
+Team chat messages and team calls are pushed to the phone through Firebase Cloud Messaging.
+1. Firebase console -> create/select a project -> add an Android app with package `bd.jobbangla.admin`
+   -> download `google-services.json` into `android/app/` (without it the build still works, push just stays off).
+2. Firebase console -> Project settings -> Service accounts -> Generate new private key, then set the server env var
+   `FCM_SERVICE_ACCOUNT_FILE` (absolute path to that JSON on the host) or `FCM_SERVICE_ACCOUNT_JSON` (its contents)
+   on the `jobbangla-api` Node.js app. Never commit that key.
+3. `npm run sync`, rebuild the APK. On first sign in the app asks for the notification permission and registers
+   its token (`POST /admin/push/register`); signing out removes it. Server code: `Website/backend/src/lib/push.js`.
+
+## Quick unlock (fingerprint / face / phone PIN)
+After a normal sign in the app offers to remember the phone. From then on, opening the app (or coming back after the
+idle timeout) shows the phone's own prompt instead of the password + authenticator code. A deliberate **Log out**
+forgets the phone; so do suspending the account, resetting its 2FA, or revoking its session in Security Center.
+The device token is stored in the Android Keystore (`@aparajita/capacitor-secure-storage`) and released by
+`@aparajita/capacitor-biometric-auth`. Server: `Website/backend/src/routes/admin-device.routes.js`
+(table `admin_trusted_devices`, 60 days sliding, max 5 phones per operator). Needs a phone with a screen lock set.
+
+## Notes
+- Launcher icons are copied from the public app; replace `assets/` and the
+  `mipmap-*` folders to give the admin app its own icon.
+- Do not commit `node_modules/`, `android/build/`, `android/.gradle/`,
+  `android/local.properties`, `*.jks`, `keystore.properties`.
